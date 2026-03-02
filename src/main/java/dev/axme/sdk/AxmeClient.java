@@ -58,6 +58,44 @@ public final class AxmeClient {
     return requestJson("POST", "/v1/users/profile/update", Map.of(), payload, normalizeOptions(options));
   }
 
+  public Map<String, Object> createServiceAccount(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/service-accounts", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> listServiceAccounts(String orgId, String workspaceId, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    query.put("org_id", orgId);
+    query.put("workspace_id", workspaceId);
+    return requestJson("GET", "/v1/service-accounts", query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getServiceAccount(String serviceAccountId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("GET", "/v1/service-accounts/" + serviceAccountId, Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> createServiceAccountKey(String serviceAccountId, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson(
+        "POST",
+        "/v1/service-accounts/" + serviceAccountId + "/keys",
+        Map.of(),
+        payload,
+        normalizeOptions(options));
+  }
+
+  public Map<String, Object> revokeServiceAccountKey(String serviceAccountId, String keyId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson(
+        "POST",
+        "/v1/service-accounts/" + serviceAccountId + "/keys/" + keyId + "/revoke",
+        Map.of(),
+        null,
+        normalizeOptions(options));
+  }
+
   private Map<String, Object> requestJson(
       String method,
       String path,
