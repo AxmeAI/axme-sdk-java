@@ -52,3 +52,13 @@ public class Quickstart {
 ```bash
 mvn test
 ```
+
+## Enterprise Admin APIs
+
+Java SDK now includes service-account lifecycle helpers:
+
+- `createServiceAccount`
+- `listServiceAccounts`
+- `getServiceAccount`
+- `createServiceAccountKey`
+- `revokeServiceAccountKey`

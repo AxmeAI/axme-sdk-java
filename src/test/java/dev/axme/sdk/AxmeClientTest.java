@@ -110,4 +110,36 @@ class AxmeClientTest {
     assertEquals("profile-1", request.getHeader("Idempotency-Key"));
     assertEquals("Partner User Updated", response.get("display_name"));
   }
+
+  @Test
+  void serviceAccountLifecycleEndpointsAreReachable() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"service_account\":{\"service_account_id\":\"sa_123\"}}"));
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"service_accounts\":[{\"service_account_id\":\"sa_123\"}]}"));
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"service_account\":{\"service_account_id\":\"sa_123\"}}"));
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"key\":{\"key_id\":\"sak_123\",\"status\":\"active\"}}"));
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"key\":{\"key_id\":\"sak_123\",\"status\":\"revoked\"}}"));
+
+    client.createServiceAccount(
+        Map.of(
+            "org_id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            "workspace_id", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "name", "sdk-runner",
+            "created_by_actor_id", "actor_java"),
+        new RequestOptions("sa-create-1", null));
+    client.listServiceAccounts(
+        "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        RequestOptions.none());
+    client.getServiceAccount("sa_123", RequestOptions.none());
+    client.createServiceAccountKey("sa_123", Map.of("created_by_actor_id", "actor_java"), RequestOptions.none());
+    client.revokeServiceAccountKey("sa_123", "sak_123", RequestOptions.none());
+
+    assertEquals("/v1/service-accounts", server.takeRequest().getPath());
+    assertEquals(
+        "/v1/service-accounts?org_id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&workspace_id=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        server.takeRequest().getPath());
+    assertEquals("/v1/service-accounts/sa_123", server.takeRequest().getPath());
+    assertEquals("/v1/service-accounts/sa_123/keys", server.takeRequest().getPath());
+    assertEquals("/v1/service-accounts/sa_123/keys/sak_123/revoke", server.takeRequest().getPath());
+  }
 }
