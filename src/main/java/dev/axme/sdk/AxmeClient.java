@@ -96,6 +96,69 @@ public final class AxmeClient {
         normalizeOptions(options));
   }
 
+  public Map<String, Object> createIntent(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/intents", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getIntent(String intentId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("GET", "/v1/intents/" + intentId, Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> listIntentEvents(String intentId, Integer since, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (since != null && since >= 0) {
+      query.put("since", Integer.toString(since));
+    }
+    return requestJson("GET", "/v1/intents/" + intentId + "/events", query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> resolveIntent(String intentId, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    RequestOptions normalized = normalizeOptions(options);
+    return requestJson(
+        "POST",
+        "/v1/intents/" + intentId + "/resolve",
+        buildIntentControlQuery(normalized),
+        payload,
+        normalized);
+  }
+
+  public Map<String, Object> resumeIntent(String intentId, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    RequestOptions normalized = normalizeOptions(options);
+    return requestJson(
+        "POST",
+        "/v1/intents/" + intentId + "/resume",
+        buildIntentControlQuery(normalized),
+        payload,
+        normalized);
+  }
+
+  public Map<String, Object> updateIntentControls(String intentId, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    RequestOptions normalized = normalizeOptions(options);
+    return requestJson(
+        "POST",
+        "/v1/intents/" + intentId + "/controls",
+        buildIntentControlQuery(normalized),
+        payload,
+        normalized);
+  }
+
+  public Map<String, Object> updateIntentPolicy(String intentId, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    RequestOptions normalized = normalizeOptions(options);
+    return requestJson(
+        "POST",
+        "/v1/intents/" + intentId + "/policy",
+        buildIntentControlQuery(normalized),
+        payload,
+        normalized);
+  }
+
   private Map<String, Object> requestJson(
       String method,
       String path,
@@ -107,8 +170,10 @@ public final class AxmeClient {
         HttpRequest.newBuilder()
             .uri(URI.create(buildUrl(path, query)))
             .method(method, payload == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
-            .header("Authorization", "Bearer " + apiKey)
             .header("Accept", "application/json");
+
+    String resolvedAuthorization = isBlank(options.getAuthorization()) ? "Bearer " + apiKey : options.getAuthorization();
+    builder.header("Authorization", resolvedAuthorization);
 
     if (payload != null) {
       builder.header("Content-Type", "application/json");
@@ -118,6 +183,9 @@ public final class AxmeClient {
     }
     if (!isBlank(options.getTraceId())) {
       builder.header("X-Trace-Id", options.getTraceId());
+    }
+    if (!isBlank(options.getXOwnerAgent())) {
+      builder.header("x-owner-agent", options.getXOwnerAgent());
     }
 
     HttpResponse<String> response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
@@ -129,6 +197,14 @@ public final class AxmeClient {
     }
 
     return objectMapper.readValue(response.body(), new TypeReference<Map<String, Object>>() {});
+  }
+
+  private static Map<String, String> buildIntentControlQuery(RequestOptions options) {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(options.getOwnerAgent())) {
+      query.put("owner_agent", options.getOwnerAgent());
+    }
+    return query;
   }
 
   private String buildUrl(String path, Map<String, String> query) {
