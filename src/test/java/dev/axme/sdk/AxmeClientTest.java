@@ -142,4 +142,64 @@ class AxmeClientTest {
     assertEquals("/v1/service-accounts/sa_123/keys", server.takeRequest().getPath());
     assertEquals("/v1/service-accounts/sa_123/keys/sak_123/revoke", server.takeRequest().getPath());
   }
+
+  @Test
+  void intentLifecycleAndControlEndpointsAreReachable() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"intent_id\":\"it_123\"}"));
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"intent\":{\"intent_id\":\"it_123\"}}"));
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"events\":[]}"));
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"applied\":false,\"policy_generation\":4}"));
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"applied\":true}"));
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"applied\":true,\"policy_generation\":5}"));
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"applied\":true,\"policy_generation\":6}"));
+
+    client.createIntent(
+        Map.of(
+            "intent_type", "notify.message.v1",
+            "from_agent", "agent://self",
+            "to_agent", "agent://target",
+            "payload", Map.of("text", "hello")),
+        RequestOptions.none());
+    assertEquals("/v1/intents", server.takeRequest().getPath());
+
+    client.getIntent("it_123", RequestOptions.none());
+    assertEquals("/v1/intents/it_123", server.takeRequest().getPath());
+
+    client.listIntentEvents("it_123", 2, RequestOptions.none());
+    assertEquals("/v1/intents/it_123/events?since=2", server.takeRequest().getPath());
+
+    client.resolveIntent(
+        "it_123",
+        Map.of("status", "COMPLETED", "expected_policy_generation", 3),
+        new RequestOptions(null, "trace-1", "agent://owner", "agent://owner", "Bearer scoped-token"));
+    RecordedRequest resolveRequest = server.takeRequest();
+    assertEquals("/v1/intents/it_123/resolve?owner_agent=agent%3A%2F%2Fowner", resolveRequest.getPath());
+    assertEquals("Bearer scoped-token", resolveRequest.getHeader("Authorization"));
+    assertEquals("agent://owner", resolveRequest.getHeader("x-owner-agent"));
+    assertEquals("trace-1", resolveRequest.getHeader("X-Trace-Id"));
+
+    client.resumeIntent(
+        "it_123",
+        Map.of("approve_current_step", true, "expected_policy_generation", 2),
+        new RequestOptions("resume-1", null, "agent://owner", null, null));
+    RecordedRequest resumeRequest = server.takeRequest();
+    assertEquals("/v1/intents/it_123/resume?owner_agent=agent%3A%2F%2Fowner", resumeRequest.getPath());
+    assertEquals("resume-1", resumeRequest.getHeader("Idempotency-Key"));
+
+    client.updateIntentControls(
+        "it_123",
+        Map.of("controls_patch", Map.of("timeout_seconds", 120), "expected_policy_generation", 5),
+        RequestOptions.none());
+    assertEquals("/v1/intents/it_123/controls", server.takeRequest().getPath());
+
+    client.updateIntentPolicy(
+        "it_123",
+        Map.of(
+            "grants_patch",
+            Map.of("delegate:agent://ops", Map.of("allow", new String[] {"resume", "update_controls"})),
+            "envelope_patch",
+            Map.of("max_retry_count", 10)),
+        new RequestOptions(null, null, "agent://creator", null, null));
+    assertEquals("/v1/intents/it_123/policy?owner_agent=agent%3A%2F%2Fcreator", server.takeRequest().getPath());
+  }
 }
