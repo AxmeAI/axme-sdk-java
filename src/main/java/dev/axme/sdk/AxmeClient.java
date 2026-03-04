@@ -159,6 +159,482 @@ public final class AxmeClient {
         normalized);
   }
 
+  public Map<String, Object> createAccessRequest(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/access-requests", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> listAccessRequests(String orgId, String workspaceId, String state, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(orgId)) {
+      query.put("org_id", orgId);
+    }
+    if (!isBlank(workspaceId)) {
+      query.put("workspace_id", workspaceId);
+    }
+    if (!isBlank(state)) {
+      query.put("state", state);
+    }
+    return requestJson("GET", "/v1/access-requests", query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getAccessRequest(String accessRequestId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("GET", "/v1/access-requests/" + accessRequestId, Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> reviewAccessRequest(String accessRequestId, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson(
+        "POST",
+        "/v1/access-requests/" + accessRequestId + "/review",
+        Map.of(),
+        payload,
+        normalizeOptions(options));
+  }
+
+  public Map<String, Object> bindAlias(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/aliases", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> listAliases(String orgId, String workspaceId, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    query.put("org_id", orgId);
+    query.put("workspace_id", workspaceId);
+    return requestJson(
+        "GET",
+        "/v1/aliases",
+        query,
+        null,
+        normalizeOptions(options));
+  }
+
+  public Map<String, Object> revokeAlias(String aliasId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/aliases/" + aliasId + "/revoke", Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> resolveAlias(String orgId, String workspaceId, String alias, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    query.put("org_id", orgId);
+    query.put("workspace_id", workspaceId);
+    query.put("alias", alias);
+    return requestJson(
+        "GET",
+        "/v1/aliases/resolve",
+        query,
+        null,
+        normalizeOptions(options));
+  }
+
+  public Map<String, Object> decideApproval(String approvalId, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson(
+        "POST",
+        "/v1/approvals/" + approvalId + "/decision",
+        Map.of(),
+        payload,
+        normalizeOptions(options));
+  }
+
+  public Map<String, Object> getCapabilities(RequestOptions options) throws IOException, InterruptedException {
+    return requestJson("GET", "/v1/capabilities", Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> listInbox(String ownerAgent, RequestOptions options) throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(ownerAgent)) {
+      query.put("owner_agent", ownerAgent);
+    }
+    return requestJson("GET", "/v1/inbox", query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getInboxThread(String threadId, String ownerAgent, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(ownerAgent)) {
+      query.put("owner_agent", ownerAgent);
+    }
+    return requestJson("GET", "/v1/inbox/" + threadId, query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> listInboxChanges(String ownerAgent, String cursor, Integer limit, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(ownerAgent)) {
+      query.put("owner_agent", ownerAgent);
+    }
+    if (!isBlank(cursor)) {
+      query.put("cursor", cursor);
+    }
+    if (limit != null && limit >= 0) {
+      query.put("limit", Integer.toString(limit));
+    }
+    return requestJson("GET", "/v1/inbox/changes", query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> replyInboxThread(String threadId, String message, String ownerAgent, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(ownerAgent)) {
+      query.put("owner_agent", ownerAgent);
+    }
+    return requestJson("POST", "/v1/inbox/" + threadId + "/reply", query, Map.of("message", message), normalizeOptions(options));
+  }
+
+  public Map<String, Object> delegateInboxThread(String threadId, Map<String, Object> payload, String ownerAgent, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(ownerAgent)) {
+      query.put("owner_agent", ownerAgent);
+    }
+    return requestJson("POST", "/v1/inbox/" + threadId + "/delegate", query, payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> approveInboxThread(String threadId, Map<String, Object> payload, String ownerAgent, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(ownerAgent)) {
+      query.put("owner_agent", ownerAgent);
+    }
+    return requestJson("POST", "/v1/inbox/" + threadId + "/approve", query, payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> rejectInboxThread(String threadId, Map<String, Object> payload, String ownerAgent, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(ownerAgent)) {
+      query.put("owner_agent", ownerAgent);
+    }
+    return requestJson("POST", "/v1/inbox/" + threadId + "/reject", query, payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> deleteInboxMessages(String threadId, Map<String, Object> payload, String ownerAgent, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(ownerAgent)) {
+      query.put("owner_agent", ownerAgent);
+    }
+    return requestJson("POST", "/v1/inbox/" + threadId + "/messages/delete", query, payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> createInvite(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/invites/create", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getInvite(String token, RequestOptions options) throws IOException, InterruptedException {
+    return requestJson("GET", "/v1/invites/" + token, Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> acceptInvite(String token, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/invites/" + token + "/accept", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> createMediaUpload(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/media/create-upload", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getMediaUpload(String uploadId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("GET", "/v1/media/" + uploadId, Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> finalizeMediaUpload(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/media/finalize-upload", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> upsertSchema(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/schemas", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getSchema(String semanticType, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("GET", "/v1/schemas/" + semanticType, Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> upsertWebhookSubscription(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/webhooks/subscriptions", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> listWebhookSubscriptions(String ownerAgent, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(ownerAgent)) {
+      query.put("owner_agent", ownerAgent);
+    }
+    return requestJson("GET", "/v1/webhooks/subscriptions", query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> deleteWebhookSubscription(String subscriptionId, String ownerAgent, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(ownerAgent)) {
+      query.put("owner_agent", ownerAgent);
+    }
+    return requestJson("DELETE", "/v1/webhooks/subscriptions/" + subscriptionId, query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> publishWebhookEvent(Map<String, Object> payload, String ownerAgent, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(ownerAgent)) {
+      query.put("owner_agent", ownerAgent);
+    }
+    return requestJson("POST", "/v1/webhooks/events", query, payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> replayWebhookEvent(String eventId, String ownerAgent, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(ownerAgent)) {
+      query.put("owner_agent", ownerAgent);
+    }
+    return requestJson("POST", "/v1/webhooks/events/" + eventId + "/replay", query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> createOrganization(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/organizations", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getOrganization(String orgId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("GET", "/v1/organizations/" + orgId, Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> updateOrganization(String orgId, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("PATCH", "/v1/organizations/" + orgId, Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> createWorkspace(String orgId, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/organizations/" + orgId + "/workspaces", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> listWorkspaces(String orgId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("GET", "/v1/organizations/" + orgId + "/workspaces", Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> updateWorkspace(String orgId, String workspaceId, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson(
+        "PATCH",
+        "/v1/organizations/" + orgId + "/workspaces/" + workspaceId,
+        Map.of(),
+        payload,
+        normalizeOptions(options));
+  }
+
+  public Map<String, Object> listOrganizationMembers(String orgId, String workspaceId, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    if (!isBlank(workspaceId)) {
+      query.put("workspace_id", workspaceId);
+    }
+    return requestJson("GET", "/v1/organizations/" + orgId + "/members", query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> addOrganizationMember(String orgId, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/organizations/" + orgId + "/members", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> updateOrganizationMember(String orgId, String memberId, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson(
+        "PATCH",
+        "/v1/organizations/" + orgId + "/members/" + memberId,
+        Map.of(),
+        payload,
+        normalizeOptions(options));
+  }
+
+  public Map<String, Object> removeOrganizationMember(String orgId, String memberId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("DELETE", "/v1/organizations/" + orgId + "/members/" + memberId, Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> updateQuota(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("PATCH", "/v1/quotas", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getQuota(String orgId, String workspaceId, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    query.put("org_id", orgId);
+    query.put("workspace_id", workspaceId);
+    return requestJson(
+        "GET",
+        "/v1/quotas",
+        query,
+        null,
+        normalizeOptions(options));
+  }
+
+  public Map<String, Object> getUsageSummary(String orgId, String workspaceId, String window, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    query.put("org_id", orgId);
+    query.put("workspace_id", workspaceId);
+    if (!isBlank(window)) {
+      query.put("window", window);
+    }
+    return requestJson("GET", "/v1/usage/summary", query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getUsageTimeseries(String orgId, String workspaceId, Integer windowDays, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    query.put("org_id", orgId);
+    query.put("workspace_id", workspaceId);
+    if (windowDays != null && windowDays >= 0) {
+      query.put("window_days", Integer.toString(windowDays));
+    }
+    return requestJson("GET", "/v1/usage/timeseries", query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> createPrincipal(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/principals", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getPrincipal(String principalId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("GET", "/v1/principals/" + principalId, Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> registerRoutingEndpoint(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/routing/endpoints", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> listRoutingEndpoints(String orgId, String workspaceId, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    query.put("org_id", orgId);
+    query.put("workspace_id", workspaceId);
+    return requestJson(
+        "GET",
+        "/v1/routing/endpoints",
+        query,
+        null,
+        normalizeOptions(options));
+  }
+
+  public Map<String, Object> updateRoutingEndpoint(String routeId, Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("PATCH", "/v1/routing/endpoints/" + routeId, Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> removeRoutingEndpoint(String routeId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("DELETE", "/v1/routing/endpoints/" + routeId, Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> resolveRouting(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/routing/resolve", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> upsertTransportBinding(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/transports/bindings", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> listTransportBindings(String orgId, String workspaceId, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    query.put("org_id", orgId);
+    query.put("workspace_id", workspaceId);
+    return requestJson(
+        "GET",
+        "/v1/transports/bindings",
+        query,
+        null,
+        normalizeOptions(options));
+  }
+
+  public Map<String, Object> removeTransportBinding(String bindingId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("DELETE", "/v1/transports/bindings/" + bindingId, Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> submitDelivery(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/deliveries", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> listDeliveries(String orgId, String workspaceId, String principalId, String status, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    query.put("org_id", orgId);
+    query.put("workspace_id", workspaceId);
+    if (!isBlank(principalId)) {
+      query.put("principal_id", principalId);
+    }
+    if (!isBlank(status)) {
+      query.put("status", status);
+    }
+    return requestJson("GET", "/v1/deliveries", query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getDelivery(String deliveryId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("GET", "/v1/deliveries/" + deliveryId, Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> replayDelivery(String deliveryId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/deliveries/" + deliveryId + "/replay", Map.of(), null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> updateBillingPlan(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("PATCH", "/v1/billing/plan", Map.of(), payload, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getBillingPlan(String orgId, String workspaceId, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    query.put("org_id", orgId);
+    query.put("workspace_id", workspaceId);
+    return requestJson(
+        "GET",
+        "/v1/billing/plan",
+        query,
+        null,
+        normalizeOptions(options));
+  }
+
+  public Map<String, Object> listBillingInvoices(String orgId, String workspaceId, String billingStatus, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    query.put("org_id", orgId);
+    query.put("workspace_id", workspaceId);
+    if (!isBlank(billingStatus)) {
+      query.put("status", billingStatus);
+    }
+    return requestJson("GET", "/v1/billing/invoices", query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getBillingInvoice(String invoiceId, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("GET", "/v1/billing/invoices/" + invoiceId, Map.of(), null, normalizeOptions(options));
+  }
+
   private Map<String, Object> requestJson(
       String method,
       String path,
