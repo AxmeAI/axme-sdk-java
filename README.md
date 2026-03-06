@@ -7,6 +7,43 @@
 
 ---
 
+## What Is AXME?
+
+AXME is a coordination infrastructure for durable execution of long-running intents across distributed systems.
+
+It provides a model for executing **intents** — requests that may take minutes, hours, or longer to complete — across services, agents, and human participants.
+
+## AXP — the Intent Protocol
+
+At the core of AXME is **AXP (Intent Protocol)** — an open protocol that defines contracts and lifecycle rules for intent processing.
+
+AXP can be implemented independently.  
+The open part of the platform includes:
+
+- the protocol specification and schemas
+- SDKs and CLI for integration
+- conformance tests
+- implementation and integration documentation
+
+## AXME Cloud
+
+**AXME Cloud** is the managed service that runs AXP in production together with **The Registry** (identity and routing).
+
+It removes operational complexity by providing:
+
+- reliable intent delivery and retries  
+- lifecycle management for long-running operations  
+- handling of timeouts, waits, reminders, and escalation  
+- observability of intent status and execution history  
+
+State and events can be accessed through:
+
+- API and SDKs  
+- event streams and webhooks  
+- the cloud console
+
+---
+
 ## What You Can Do With This SDK
 
 - **Send intents** — create typed, durable actions with delivery guarantees
@@ -19,15 +56,25 @@
 
 ## Install
 
-Add to your `pom.xml`:
+Build and install from source (local Maven repository):
+
+```bash
+git clone https://github.com/AxmeAI/axme-sdk-java.git
+cd axme-sdk-java
+mvn -q -DskipTests install
+```
+
+Then add to your `pom.xml`:
 
 ```xml
 <dependency>
     <groupId>ai.axme</groupId>
     <artifactId>axme</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
 </dependency>
 ```
+
+Maven Central publication target: `ai.axme:axme`.
 
 ---
 
@@ -42,8 +89,15 @@ import java.util.Map;
 public class Quickstart {
     public static void main(String[] args) throws Exception {
         AxmeClient client = new AxmeClient(
-            new AxmeClientConfig("https://gateway.axme.ai", "YOUR_API_KEY")
+            new AxmeClientConfig(
+                "https://gateway.axme.ai",
+                "YOUR_PLATFORM_API_KEY", // sent as x-api-key
+                "OPTIONAL_USER_OR_SESSION_TOKEN" // sent as Authorization: Bearer
+            )
         );
+
+        // Check connectivity / discover available capabilities
+        System.out.println(client.getCapabilities(RequestOptions.none()));
 
         // Send an intent
         Map<String, Object> intent = client.createIntent(
@@ -71,9 +125,9 @@ The SDK covers the full public API surface:
 
 ---
 
-## Pagination, Filtering, and Sorting
+## Pagination and Cursor Flows
 
-List endpoints return paginated results. The SDK handles cursor-based pagination:
+Cursor-based list endpoints are available for inbox change streams:
 
 ![Pagination, Filtering, and Sorting Patterns](docs/diagrams/03-pagination-filtering-sorting-patterns.svg)
 
@@ -155,12 +209,12 @@ Map<String, Object> sa = client.createServiceAccount(
 // Issue a key
 Map<String, Object> key = client.createServiceAccountKey(
     (String) sa.get("id"),
-    Map.of("name", "ci-key"),
+    Map.of(),
     new RequestOptions(null, null)
 );
 
 // List service accounts
-client.listServiceAccounts("org_abc", null, RequestOptions.none());
+client.listServiceAccounts("org_abc", "", RequestOptions.none());
 
 // Revoke a key
 client.revokeServiceAccountKey(

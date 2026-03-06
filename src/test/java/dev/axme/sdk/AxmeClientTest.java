@@ -1,6 +1,7 @@
 package dev.axme.sdk;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -42,13 +43,38 @@ class AxmeClientTest {
     RecordedRequest request = server.takeRequest();
     assertEquals("POST", request.getMethod());
     assertEquals("/v1/users/register-nick", request.getPath());
-    assertEquals("Bearer token", request.getHeader("Authorization"));
+    assertEquals("token", request.getHeader("x-api-key"));
     assertEquals("register-1", request.getHeader("Idempotency-Key"));
 
     Map<String, Object> body =
         objectMapper.readValue(request.getBody().readUtf8(), new TypeReference<Map<String, Object>>() {});
     assertEquals("@partner.user", body.get("nick"));
     assertTrue((Boolean) response.get("ok"));
+  }
+
+  @Test
+  void clientSendsConfiguredActorToken() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"available\":true}"));
+
+    AxmeClient actorClient =
+        new AxmeClient(new AxmeClientConfig(server.url("/").toString(), "platform-token", "actor-token"));
+    actorClient.checkNick("@partner.user", RequestOptions.none());
+
+    RecordedRequest request = server.takeRequest();
+    assertEquals("platform-token", request.getHeader("x-api-key"));
+    assertEquals("Bearer actor-token", request.getHeader("Authorization"));
+  }
+
+  @Test
+  void configRejectsConflictingActorTokenAliases() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new AxmeClientConfig(
+                "https://api.axme.test",
+                "platform-token",
+                "actor-a",
+                "actor-b"));
   }
 
   @Test
@@ -190,7 +216,13 @@ class AxmeClientTest {
         "it_123",
         Map.of("controls_patch", Map.of("timeout_seconds", 120), "expected_policy_generation", 5),
         RequestOptions.none());
-    assertEquals("/v1/intents/it_123/controls", server.takeRequest().getPath());
+    RecordedRequest controlsRequest = server.takeRequest();
+    assertEquals("/v1/intents/it_123/controls", controlsRequest.getPath());
+    Map<String, Object> controlsBody =
+        objectMapper.readValue(controlsRequest.getBody().readUtf8(), new TypeReference<Map<String, Object>>() {});
+    Map<String, Object> controlsPatch = (Map<String, Object>) controlsBody.get("controls_patch");
+    assertEquals(120, ((Number) controlsPatch.get("timeout_seconds")).intValue());
+    assertEquals(5, ((Number) controlsBody.get("expected_policy_generation")).intValue());
 
     client.updateIntentPolicy(
         "it_123",
@@ -200,7 +232,16 @@ class AxmeClientTest {
             "envelope_patch",
             Map.of("max_retry_count", 10)),
         new RequestOptions(null, null, "agent://creator", null, null));
-    assertEquals("/v1/intents/it_123/policy?owner_agent=agent%3A%2F%2Fcreator", server.takeRequest().getPath());
+    RecordedRequest policyRequest = server.takeRequest();
+    assertEquals("/v1/intents/it_123/policy?owner_agent=agent%3A%2F%2Fcreator", policyRequest.getPath());
+    Map<String, Object> policyBody =
+        objectMapper.readValue(policyRequest.getBody().readUtf8(), new TypeReference<Map<String, Object>>() {});
+    Map<String, Object> grantsPatch = (Map<String, Object>) policyBody.get("grants_patch");
+    Map<String, Object> delegateGrant = (Map<String, Object>) grantsPatch.get("delegate:agent://ops");
+    assertTrue(((java.util.List<?>) delegateGrant.get("allow")).contains("resume"));
+    assertTrue(((java.util.List<?>) delegateGrant.get("allow")).contains("update_controls"));
+    Map<String, Object> envelopePatch = (Map<String, Object>) policyBody.get("envelope_patch");
+    assertEquals(10, ((Number) envelopePatch.get("max_retry_count")).intValue());
   }
 
   @Test

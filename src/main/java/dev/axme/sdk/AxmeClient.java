@@ -15,6 +15,7 @@ import java.util.Map;
 public final class AxmeClient {
   private final String baseUrl;
   private final String apiKey;
+  private final String actorToken;
   private final HttpClient httpClient;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -25,6 +26,7 @@ public final class AxmeClient {
   public AxmeClient(AxmeClientConfig config, HttpClient httpClient) {
     this.baseUrl = config.getBaseUrl();
     this.apiKey = config.getApiKey();
+    this.actorToken = config.getActorToken();
     this.httpClient = httpClient;
   }
 
@@ -648,8 +650,14 @@ public final class AxmeClient {
             .method(method, payload == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
             .header("Accept", "application/json");
 
-    String resolvedAuthorization = isBlank(options.getAuthorization()) ? "Bearer " + apiKey : options.getAuthorization();
-    builder.header("Authorization", resolvedAuthorization);
+    builder.header("x-api-key", apiKey);
+    String resolvedAuthorization = options.getAuthorization();
+    if (isBlank(resolvedAuthorization) && !isBlank(actorToken)) {
+      resolvedAuthorization = "Bearer " + actorToken;
+    }
+    if (!isBlank(resolvedAuthorization)) {
+      builder.header("Authorization", resolvedAuthorization);
+    }
 
     if (payload != null) {
       builder.header("Content-Type", "application/json");

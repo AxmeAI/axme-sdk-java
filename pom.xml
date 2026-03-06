@@ -6,15 +6,15 @@
 
   <groupId>ai.axme</groupId>
   <artifactId>axme</artifactId>
-  <version>0.1.0</version>
-  <name>Axme Java SDK</name>
+  <version>0.1.1</version>
+  <name>axme</name>
   <description>Official Java SDK for Axme APIs and workflows.</description>
   <url>https://github.com/AxmeAI/axme-sdk-java</url>
 
   <licenses>
     <license>
       <name>MIT License</name>
-      <url>https://opensource.org/license/mit</url>
+      <url>https://opensource.org/licenses/MIT</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
@@ -89,7 +89,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>3.7.0</version>
+        <version>3.10.0</version>
         <configuration>
           <source>11</source>
           <encoding>UTF-8</encoding>
@@ -108,6 +108,12 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-gpg-plugin</artifactId>
         <version>3.2.7</version>
+        <configuration>
+          <gpgArguments>
+            <arg>--pinentry-mode</arg>
+            <arg>loopback</arg>
+          </gpgArguments>
+        </configuration>
         <executions>
           <execution>
             <id>sign-artifacts</id>
@@ -128,7 +134,7 @@
       <plugin>
         <groupId>org.sonatype.central</groupId>
         <artifactId>central-publishing-maven-plugin</artifactId>
-        <version>0.8.0</version>
+        <version>0.9.0</version>
         <extensions>true</extensions>
         <configuration>
           <publishingServerId>central</publishingServerId>
