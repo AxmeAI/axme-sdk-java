@@ -116,6 +116,7 @@
               <goal>sign</goal>
             </goals>
             <configuration>
+              <keyname>${env.MAVEN_GPG_KEY_ID}!</keyname>
               <gpgArguments>
                 <arg>--pinentry-mode</arg>
                 <arg>loopback</arg>
