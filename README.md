@@ -23,9 +23,9 @@ Add to your `pom.xml`:
 
 ```xml
 <dependency>
-    <groupId>dev.axme</groupId>
-    <artifactId>axme-sdk</artifactId>
-    <version>0.1.0-alpha</version>
+    <groupId>ai.axme</groupId>
+    <artifactId>axme</artifactId>
+    <version>0.1.0</version>
 </dependency>
 ```
 
@@ -44,9 +44,6 @@ public class Quickstart {
         AxmeClient client = new AxmeClient(
             new AxmeClientConfig("https://gateway.axme.ai", "YOUR_API_KEY")
         );
-
-        // Check connectivity
-        System.out.println(client.health());
 
         // Send an intent
         Map<String, Object> intent = client.createIntent(
@@ -83,15 +80,19 @@ List endpoints return paginated results. The SDK handles cursor-based pagination
 *All list methods return a `cursor` field for the next page. Pass it as `after` in the next call. Filter and sort parameters are typed per endpoint.*
 
 ```java
-// Paginate through intents
-Map<String, Object> page = client.listIntents(
-    Map.of("status", "PENDING", "limit", 20),
+// Paginate through inbox changes
+Map<String, Object> page = client.listInboxChanges(
+    "agent://manager",
+    null,
+    50,
     RequestOptions.none()
 );
 
 while (page.get("cursor") != null) {
-    page = client.listIntents(
-        Map.of("after", page.get("cursor"), "limit", 20),
+    page = client.listInboxChanges(
+        "agent://manager",
+        (String) page.get("cursor"),
+        50,
         RequestOptions.none()
     );
 }
@@ -102,19 +103,40 @@ while (page.get("cursor") != null) {
 ## Approvals
 
 ```java
-Map<String, Object> inbox = client.listInbox(
-    Map.of("owner_agent", "agent://manager", "status", "PENDING"),
-    RequestOptions.none()
-);
+Map<String, Object> inbox = client.listInbox("agent://manager", RequestOptions.none());
 
 for (Object item : (List<?>) inbox.get("items")) {
     Map<?, ?> entry = (Map<?, ?>) item;
-    client.resolveApproval(
-        (String) entry.get("intent_id"),
-        Map.of("decision", "approved", "note", "Reviewed and approved"),
-        new RequestOptions(null, null)
+    Map<String, Object> action = (Map<String, Object>) entry.get("action");
+    if (action == null || action.get("approval_id") == null) {
+        continue;
+    }
+    client.decideApproval(
+        (String) action.get("approval_id"),
+        Map.of("decision", "approve", "reason", "Reviewed and approved"),
+        RequestOptions.none()
     );
 }
+```
+
+---
+
+## Intents
+
+```java
+Map<String, Object> created = client.createIntent(
+    Map.of(
+        "intent_type", "order.fulfillment.v1",
+        "owner_agent", "agent://fulfillment-service",
+        "payload", Map.of("order_id", "ord_123")
+    ),
+    new RequestOptions("intent-ord-123", null)
+);
+
+String intentId = (String) created.get("intent_id");
+
+Map<String, Object> current = client.getIntent(intentId, RequestOptions.none());
+Map<String, Object> events = client.listIntentEvents(intentId, null, RequestOptions.none());
 ```
 
 ---
@@ -133,11 +155,12 @@ Map<String, Object> sa = client.createServiceAccount(
 // Issue a key
 Map<String, Object> key = client.createServiceAccountKey(
     (String) sa.get("id"),
+    Map.of("name", "ci-key"),
     new RequestOptions(null, null)
 );
 
 // List service accounts
-client.listServiceAccounts("org_abc", RequestOptions.none());
+client.listServiceAccounts("org_abc", null, RequestOptions.none());
 
 // Revoke a key
 client.revokeServiceAccountKey(
