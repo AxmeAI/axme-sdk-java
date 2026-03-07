@@ -1,9 +1,19 @@
 package dev.axme.sdk;
 
 public final class AxmeClientConfig {
+  public static final String DEFAULT_BASE_URL = "https://api.cloud.axme.ai";
+
   private final String baseUrl;
   private final String apiKey;
   private final String actorToken;
+
+  public static AxmeClientConfig forCloud(String apiKey) {
+    return new AxmeClientConfig(DEFAULT_BASE_URL, apiKey, null, null);
+  }
+
+  public static AxmeClientConfig forCloud(String apiKey, String actorToken) {
+    return new AxmeClientConfig(DEFAULT_BASE_URL, apiKey, actorToken, null);
+  }
 
   public AxmeClientConfig(String baseUrl, String apiKey) {
     this(baseUrl, apiKey, null, null);
@@ -14,9 +24,6 @@ public final class AxmeClientConfig {
   }
 
   public AxmeClientConfig(String baseUrl, String apiKey, String actorToken, String bearerToken) {
-    if (baseUrl == null || baseUrl.trim().isEmpty()) {
-      throw new IllegalArgumentException("baseUrl is required");
-    }
     if (apiKey == null || apiKey.trim().isEmpty()) {
       throw new IllegalArgumentException("apiKey is required");
     }
@@ -27,7 +34,8 @@ public final class AxmeClientConfig {
         && !normalizedActorToken.equals(normalizedBearerToken)) {
       throw new IllegalArgumentException("actorToken and bearerToken must match when both are provided");
     }
-    this.baseUrl = trimTrailingSlash(baseUrl.trim());
+    String normalizedBaseUrl = (baseUrl == null || baseUrl.trim().isEmpty()) ? DEFAULT_BASE_URL : baseUrl.trim();
+    this.baseUrl = trimTrailingSlash(normalizedBaseUrl);
     this.apiKey = apiKey.trim();
     this.actorToken = isNonBlank(normalizedActorToken) ? normalizedActorToken : normalizedBearerToken;
   }
