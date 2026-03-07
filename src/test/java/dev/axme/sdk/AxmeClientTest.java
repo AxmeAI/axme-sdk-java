@@ -78,6 +78,12 @@ class AxmeClientTest {
   }
 
   @Test
+  void configUsesDefaultBaseUrlWhenBlank() {
+    AxmeClientConfig config = new AxmeClientConfig("", "platform-token");
+    assertEquals("https://api.cloud.axme.ai", config.getBaseUrl());
+  }
+
+  @Test
   void checkNickSendsQueryParameter() throws Exception {
     server.enqueue(
         new MockResponse()

@@ -89,12 +89,13 @@ import java.util.Map;
 public class Quickstart {
     public static void main(String[] args) throws Exception {
         AxmeClient client = new AxmeClient(
-            new AxmeClientConfig(
-                "https://gateway.axme.ai",
-                "YOUR_PLATFORM_API_KEY", // sent as x-api-key
+            AxmeClientConfig.forCloud(
+                "AXME_API_KEY", // sent as x-api-key
                 "OPTIONAL_USER_OR_SESSION_TOKEN" // sent as Authorization: Bearer
             )
         );
+        // Optional override for staging/dev:
+        // AxmeClientConfig cfg = new AxmeClientConfig("https://staging-api.cloud.axme.ai", "AXME_API_KEY");
 
         // Check connectivity / discover available capabilities
         System.out.println(client.getCapabilities(RequestOptions.none()));
@@ -112,6 +113,26 @@ public class Quickstart {
     }
 }
 ```
+
+---
+
+## Minimal Language-Native Example
+
+Short basic submit/get example:
+
+- [`examples/BasicSubmit.java`](examples/BasicSubmit.java)
+
+Run (after SDK build/install):
+
+```bash
+export AXME_API_KEY="axme_sa_..."
+# compile/run according to your app setup, reusing examples/BasicSubmit.java
+```
+
+Full runnable scenario set lives in:
+
+- Cloud: <https://github.com/AxmeAI/axme-examples/tree/main/cloud>
+- Protocol-only: <https://github.com/AxmeAI/axme-examples/tree/main/protocol>
 
 ---
 
@@ -264,6 +285,8 @@ axme-sdk-java/
 │   │   ├── RequestOptions.java    # Idempotency key and correlation ID
 │   │   └── AxmeAPIException.java  # Typed exception
 │   └── test/                      # JUnit test suite
+├── examples/
+│   └── BasicSubmit.java           # Minimal language-native quickstart
 └── docs/
     └── diagrams/                  # Diagram copies for README embedding
 ```
