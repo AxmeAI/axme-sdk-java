@@ -1,6 +1,6 @@
 # axme-sdk-java
 
-**Official Java SDK for the AXME platform.** Send and manage intents, observe lifecycle events, handle approvals, and access the enterprise admin surface — built for Java 11+, with clean exception types and request/response maps.
+**Official Java SDK for the AXME platform.** Send and manage intents, poll lifecycle events and history, handle approvals, and access the enterprise admin surface — built for Java 11+, with clean exception types and request/response maps.
 
 > **Alpha** · API surface is stabilizing. Not recommended for production workloads yet.  
 > Alpha access: https://cloud.axme.ai/alpha · Contact and suggestions: [hello@axme.ai](mailto:hello@axme.ai)
@@ -47,7 +47,7 @@ State and events can be accessed through:
 ## What You Can Do With This SDK
 
 - **Send intents** — create typed, durable actions with delivery guarantees
-- **Observe lifecycle** — stream real-time state events
+- **Poll lifecycle events** — retrieve real-time state events and intent history via `listIntentEvents`
 - **Approve or reject** — handle human-in-the-loop steps from Java services
 - **Control workflows** — pause, resume, cancel, update retry policies and reminders
 - **Administer** — manage organizations, workspaces, service accounts, and grants
