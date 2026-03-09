@@ -140,7 +140,7 @@ Full runnable scenario set lives in:
 
 The SDK covers the full public API surface:
 
-![API Method Family Map](docs/diagrams/01-api-method-family-map.svg)
+![API Method Family Map](https://raw.githubusercontent.com/AxmeAI/axme-docs/main/docs/diagrams/api/01-api-method-family-map.svg)
 
 *D1 families (intents, inbox, approvals) are the core integration path. D2 adds schemas, webhooks, and media. D3 covers enterprise admin. The Java SDK implements all three tiers.*
 
@@ -150,7 +150,7 @@ The SDK covers the full public API surface:
 
 Cursor-based list endpoints are available for inbox change streams:
 
-![Pagination, Filtering, and Sorting Patterns](docs/diagrams/03-pagination-filtering-sorting-patterns.svg)
+![Pagination, Filtering, and Sorting Patterns](https://raw.githubusercontent.com/AxmeAI/axme-docs/main/docs/diagrams/api/03-pagination-filtering-sorting-patterns.svg)
 
 *All list methods return a `cursor` field for the next page. Pass it as `after` in the next call. Filter and sort parameters are typed per endpoint.*
 
@@ -288,7 +288,6 @@ axme-sdk-java/
 ├── examples/
 │   └── BasicSubmit.java           # Minimal language-native quickstart
 └── docs/
-    └── diagrams/                  # Diagram copies for README embedding
 ```
 
 ---
