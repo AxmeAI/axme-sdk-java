@@ -18,8 +18,7 @@ public final class BasicSubmit {
         Map.of(
             "intent_type", "intent.demo.v1",
             "correlation_id", UUID.randomUUID().toString(),
-            "from_agent", "agent://basic/java/source",
-            "to_agent", "agent://basic/java/target",
+            "to_agent", "agent://acme-corp/production/target",
             "payload", Map.of("task", "hello-from-java")
         ),
         RequestOptions.none()

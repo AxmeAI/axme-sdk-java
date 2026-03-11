@@ -98,6 +98,25 @@ public final class AxmeClient {
         normalizeOptions(options));
   }
 
+  public Map<String, Object> listAgents(String orgId, String workspaceId, Integer limit, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, String> query = new LinkedHashMap<>();
+    query.put("org_id", orgId);
+    query.put("workspace_id", workspaceId);
+    if (limit != null && limit > 0) {
+      query.put("limit", Integer.toString(limit));
+    }
+    return requestJson("GET", "/v1/agents", query, null, normalizeOptions(options));
+  }
+
+  public Map<String, Object> getAgent(String address, RequestOptions options)
+      throws IOException, InterruptedException {
+    String pathPart = address.trim().startsWith("agent://")
+        ? address.trim().substring("agent://".length())
+        : address.trim();
+    return requestJson("GET", "/v1/agents/" + pathPart, Map.of(), null, normalizeOptions(options));
+  }
+
   public Map<String, Object> createIntent(Map<String, Object> payload, RequestOptions options)
       throws IOException, InterruptedException {
     return requestJson("POST", "/v1/intents", Map.of(), payload, normalizeOptions(options));
