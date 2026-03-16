@@ -100,16 +100,20 @@ public class Quickstart {
         // Check connectivity / discover available capabilities
         System.out.println(client.getCapabilities(RequestOptions.none()));
 
-        // Send an intent
+        // Send an intent to a registered agent address
         Map<String, Object> intent = client.createIntent(
             Map.of(
                 "intent_type", "order.fulfillment.v1",
-                "payload", Map.of("order_id", "ord_123", "priority", "high"),
-                "owner_agent", "agent://fulfillment-service"
+                "to_agent", "agent://acme-corp/production/fulfillment-service",
+                "payload", Map.of("order_id", "ord_123", "priority", "high")
             ),
             new RequestOptions("fulfill-ord-123-001", null)
         );
         System.out.println(intent.get("intent_id") + " " + intent.get("status"));
+
+        // List registered agent addresses
+        Map<String, Object> agents = client.listAgents("acme-corp-uuid", "prod-ws-uuid", null, RequestOptions.none());
+        System.out.println(agents.get("agents"));
     }
 }
 ```
