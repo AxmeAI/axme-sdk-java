@@ -70,7 +70,7 @@ Then add to your `pom.xml`:
 <dependency>
     <groupId>ai.axme</groupId>
     <artifactId>axme</artifactId>
-    <version>0.1.1</version>
+    <version>0.1.2</version>
 </dependency>
 ```
 
