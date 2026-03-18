@@ -11,6 +11,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public final class AxmeClient {
   private final String baseUrl;
@@ -654,6 +655,82 @@ public final class AxmeClient {
   public Map<String, Object> getBillingInvoice(String invoiceId, RequestOptions options)
       throws IOException, InterruptedException {
     return requestJson("GET", "/v1/billing/invoices/" + invoiceId, Map.of(), null, normalizeOptions(options));
+  }
+
+  public String sendIntent(Map<String, Object> payload, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, Object> body = new LinkedHashMap<>(payload);
+    if (!body.containsKey("correlation_id")) {
+      body.put("correlation_id", UUID.randomUUID().toString());
+    }
+    Map<String, Object> result = createIntent(body, options);
+    return (String) result.get("intent_id");
+  }
+
+  public Map<String, Object> applyScenario(Map<String, Object> bundle, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/scenarios/apply", Map.of(), bundle, normalizeOptions(options));
+  }
+
+  public Map<String, Object> validateScenario(Map<String, Object> bundle, RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("POST", "/v1/scenarios/validate", Map.of(), bundle, normalizeOptions(options));
+  }
+
+  public Map<String, Object> health(RequestOptions options)
+      throws IOException, InterruptedException {
+    return requestJson("GET", "/v1/health", Map.of(), null, normalizeOptions(options));
+  }
+
+  @SuppressWarnings("unchecked")
+  public Map<String, Object> mcpInitialize(RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, Object> rpcRequest = new LinkedHashMap<>();
+    rpcRequest.put("jsonrpc", "2.0");
+    rpcRequest.put("id", UUID.randomUUID().toString());
+    rpcRequest.put("method", "initialize");
+    rpcRequest.put("params", Map.of());
+    Map<String, Object> response = requestJson("POST", "/mcp", Map.of(), rpcRequest, normalizeOptions(options));
+    if (response.containsKey("error")) {
+      throw new AxmeHttpException(0, String.valueOf(response.get("error")));
+    }
+    Object result = response.get("result");
+    return result instanceof Map ? (Map<String, Object>) result : response;
+  }
+
+  @SuppressWarnings("unchecked")
+  public Map<String, Object> mcpListTools(RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, Object> rpcRequest = new LinkedHashMap<>();
+    rpcRequest.put("jsonrpc", "2.0");
+    rpcRequest.put("id", UUID.randomUUID().toString());
+    rpcRequest.put("method", "tools/list");
+    rpcRequest.put("params", Map.of());
+    Map<String, Object> response = requestJson("POST", "/mcp", Map.of(), rpcRequest, normalizeOptions(options));
+    if (response.containsKey("error")) {
+      throw new AxmeHttpException(0, String.valueOf(response.get("error")));
+    }
+    Object result = response.get("result");
+    return result instanceof Map ? (Map<String, Object>) result : response;
+  }
+
+  @SuppressWarnings("unchecked")
+  public Map<String, Object> mcpCallTool(String name, Map<String, Object> arguments, RequestOptions options)
+      throws IOException, InterruptedException {
+    Map<String, Object> params = new LinkedHashMap<>();
+    params.put("name", name);
+    params.put("arguments", arguments != null ? arguments : Map.of());
+    Map<String, Object> rpcRequest = new LinkedHashMap<>();
+    rpcRequest.put("jsonrpc", "2.0");
+    rpcRequest.put("id", UUID.randomUUID().toString());
+    rpcRequest.put("method", "tools/call");
+    rpcRequest.put("params", params);
+    Map<String, Object> response = requestJson("POST", "/mcp", Map.of(), rpcRequest, normalizeOptions(options));
+    if (response.containsKey("error")) {
+      throw new AxmeHttpException(0, String.valueOf(response.get("error")));
+    }
+    Object result = response.get("result");
+    return result instanceof Map ? (Map<String, Object>) result : response;
   }
 
   private Map<String, Object> requestJson(
