@@ -689,7 +689,7 @@ public final class AxmeClient {
     rpcRequest.put("jsonrpc", "2.0");
     rpcRequest.put("id", UUID.randomUUID().toString());
     rpcRequest.put("method", "initialize");
-    rpcRequest.put("params", Map.of());
+    rpcRequest.put("params", Map.of("protocolVersion", "2024-11-05"));
     Map<String, Object> response = requestJson("POST", "/mcp", Map.of(), rpcRequest, normalizeOptions(options));
     if (response.containsKey("error")) {
       throw new AxmeHttpException(0, String.valueOf(response.get("error")));
