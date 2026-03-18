@@ -1,11 +1,13 @@
 package dev.axme.sdk;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import java.util.Map;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -428,5 +430,134 @@ class AxmeClientTest {
     assertEquals("/v1/billing/plan?org_id=org_1&workspace_id=ws_1", server.takeRequest().getPath());
     assertEquals("/v1/billing/invoices?org_id=org_1&workspace_id=ws_1&status=open", server.takeRequest().getPath());
     assertEquals("/v1/billing/invoices/inv_1", server.takeRequest().getPath());
+  }
+
+  @Test
+  void observeCollectsEventsAndStopsAtTerminal() throws Exception {
+    // First poll: two non-terminal events
+    server.enqueue(new MockResponse().setResponseCode(200).setBody(
+        "{\"ok\":true,\"events\":["
+        + "{\"seq\":1,\"event_type\":\"intent.created\",\"status\":\"PENDING\"},"
+        + "{\"seq\":2,\"event_type\":\"intent.dispatched\",\"status\":\"IN_PROGRESS\"}"
+        + "]}"));
+    // Second poll: empty (triggers sleep + re-poll)
+    server.enqueue(new MockResponse().setResponseCode(200).setBody(
+        "{\"ok\":true,\"events\":[]}"));
+    // Third poll: terminal event
+    server.enqueue(new MockResponse().setResponseCode(200).setBody(
+        "{\"ok\":true,\"events\":["
+        + "{\"seq\":3,\"event_type\":\"intent.completed\",\"status\":\"COMPLETED\"}"
+        + "]}"));
+
+    List<Map<String, Object>> events = client.observe("it_obs_1",
+        new ObserveOptions(0, 0.05, null));
+
+    assertEquals(3, events.size());
+    assertEquals("intent.created", events.get(0).get("event_type"));
+    assertEquals("intent.dispatched", events.get(1).get("event_type"));
+    assertEquals("intent.completed", events.get(2).get("event_type"));
+    assertEquals("COMPLETED", events.get(2).get("status"));
+
+    // Verify since parameter advances: first call since=0, third since=2
+    RecordedRequest req1 = server.takeRequest();
+    assertEquals("/v1/intents/it_obs_1/events?since=0", req1.getPath());
+    RecordedRequest req2 = server.takeRequest();
+    assertEquals("/v1/intents/it_obs_1/events?since=2", req2.getPath());
+    RecordedRequest req3 = server.takeRequest();
+    assertEquals("/v1/intents/it_obs_1/events?since=2", req3.getPath());
+  }
+
+  @Test
+  void observeStopsOnEventTypeAlone() throws Exception {
+    // Terminal via event_type only (no status field)
+    server.enqueue(new MockResponse().setResponseCode(200).setBody(
+        "{\"ok\":true,\"events\":["
+        + "{\"seq\":1,\"event_type\":\"intent.failed\"}"
+        + "]}"));
+
+    List<Map<String, Object>> events = client.observe("it_obs_2",
+        new ObserveOptions(0, 0.05, null));
+
+    assertEquals(1, events.size());
+    assertEquals("intent.failed", events.get(0).get("event_type"));
+  }
+
+  @Test
+  void observeStopsOnStatusAlone() throws Exception {
+    // Terminal via status only (no event_type field)
+    server.enqueue(new MockResponse().setResponseCode(200).setBody(
+        "{\"ok\":true,\"events\":["
+        + "{\"seq\":1,\"status\":\"CANCELED\"}"
+        + "]}"));
+
+    List<Map<String, Object>> events = client.observe("it_obs_3",
+        new ObserveOptions(0, 0.05, null));
+
+    assertEquals(1, events.size());
+    assertEquals("CANCELED", events.get(0).get("status"));
+  }
+
+  @Test
+  void observeTimesOut() {
+    // Enqueue enough empty responses to keep polling
+    for (int i = 0; i < 20; i++) {
+      server.enqueue(new MockResponse().setResponseCode(200).setBody(
+          "{\"ok\":true,\"events\":[]}"));
+    }
+
+    AxmeTimeoutException ex = assertThrows(AxmeTimeoutException.class, () ->
+        client.observe("it_timeout", new ObserveOptions(0, 0.05, 0.1)));
+
+    assertEquals("it_timeout", ex.getIntentId());
+    assertTrue(ex.getTimeoutSeconds() > 0);
+  }
+
+  @Test
+  void waitForReturnsTerminalEvent() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(200).setBody(
+        "{\"ok\":true,\"events\":["
+        + "{\"seq\":1,\"event_type\":\"intent.created\",\"status\":\"PENDING\"}"
+        + "]}"));
+    server.enqueue(new MockResponse().setResponseCode(200).setBody(
+        "{\"ok\":true,\"events\":["
+        + "{\"seq\":2,\"event_type\":\"intent.timed_out\",\"status\":\"TIMED_OUT\"}"
+        + "]}"));
+
+    Map<String, Object> terminal = client.waitFor("it_wait_1",
+        new ObserveOptions(0, 0.05, null));
+
+    assertNotNull(terminal);
+    assertEquals("TIMED_OUT", terminal.get("status"));
+    assertEquals("intent.timed_out", terminal.get("event_type"));
+  }
+
+  @Test
+  void observeWithSinceParameter() throws Exception {
+    // Start from since=5, verify first request uses since=5
+    server.enqueue(new MockResponse().setResponseCode(200).setBody(
+        "{\"ok\":true,\"events\":["
+        + "{\"seq\":6,\"event_type\":\"intent.completed\",\"status\":\"COMPLETED\"}"
+        + "]}"));
+
+    List<Map<String, Object>> events = client.observe("it_since",
+        new ObserveOptions(5, 0.05, null));
+
+    assertEquals(1, events.size());
+    RecordedRequest req = server.takeRequest();
+    assertEquals("/v1/intents/it_since/events?since=5", req.getPath());
+  }
+
+  @Test
+  void observeWithNullOptionsUsesDefaults() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(200).setBody(
+        "{\"ok\":true,\"events\":["
+        + "{\"seq\":1,\"event_type\":\"intent.completed\",\"status\":\"COMPLETED\"}"
+        + "]}"));
+
+    List<Map<String, Object>> events = client.observe("it_null_opts", null);
+
+    assertEquals(1, events.size());
+    RecordedRequest req = server.takeRequest();
+    assertEquals("/v1/intents/it_null_opts/events?since=0", req.getPath());
   }
 }
