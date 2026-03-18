@@ -9,8 +9,11 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public final class AxmeClient {
@@ -731,6 +734,100 @@ public final class AxmeClient {
     }
     Object result = response.get("result");
     return result instanceof Map ? (Map<String, Object>) result : response;
+  }
+
+  private static final Set<String> TERMINAL_STATUSES =
+      Set.of("COMPLETED", "FAILED", "CANCELED", "TIMED_OUT");
+
+  private static final Set<String> TERMINAL_EVENT_TYPES =
+      Set.of("intent.completed", "intent.failed", "intent.canceled", "intent.timed_out");
+
+  /**
+   * Polls {@code listIntentEvents} in a loop and returns all events up to and
+   * including the first terminal event.
+   *
+   * <p>A terminal event is one whose {@code status} field is in
+   * {@code COMPLETED, FAILED, CANCELED, TIMED_OUT} or whose {@code event_type}
+   * field is {@code intent.completed, intent.failed, intent.canceled, intent.timed_out}.
+   *
+   * @param intentId the intent to observe
+   * @param options  polling options (since, interval, timeout); may be {@code null}
+   * @return list of event maps in arrival order, ending with the terminal event
+   * @throws AxmeTimeoutException if {@code timeoutSeconds} is set and elapsed
+   * @throws IOException          on HTTP transport errors
+   * @throws InterruptedException if the polling thread is interrupted
+   */
+  @SuppressWarnings("unchecked")
+  public List<Map<String, Object>> observe(String intentId, ObserveOptions options)
+      throws IOException, InterruptedException {
+    ObserveOptions opts = options != null ? options : ObserveOptions.defaults();
+    int nextSince = opts.getSince();
+    long startNanos = System.nanoTime();
+    List<Map<String, Object>> collected = new ArrayList<>();
+
+    while (true) {
+      if (opts.getTimeoutSeconds() != null) {
+        double elapsed = (System.nanoTime() - startNanos) / 1_000_000_000.0;
+        if (elapsed >= opts.getTimeoutSeconds()) {
+          throw new AxmeTimeoutException(intentId, opts.getTimeoutSeconds());
+        }
+      }
+
+      Map<String, Object> response = listIntentEvents(intentId, nextSince, RequestOptions.none());
+      Object eventsObj = response.get("events");
+      List<Map<String, Object>> events =
+          eventsObj instanceof List ? (List<Map<String, Object>>) eventsObj : List.of();
+
+      for (Map<String, Object> event : events) {
+        nextSince = maxSeenSeq(nextSince, event);
+        collected.add(event);
+        if (isTerminalIntentEvent(event)) {
+          return collected;
+        }
+      }
+
+      if (events.isEmpty()) {
+        long sleepMillis = (long) (opts.getPollIntervalSeconds() * 1000);
+        Thread.sleep(sleepMillis);
+      }
+    }
+  }
+
+  /**
+   * Polls until a terminal event is seen and returns it.
+   *
+   * <p>This is a convenience wrapper around {@link #observe} that discards
+   * intermediate events and returns only the terminal one.
+   *
+   * @param intentId the intent to wait for
+   * @param options  polling options; may be {@code null}
+   * @return the terminal event map
+   * @throws AxmeTimeoutException if {@code timeoutSeconds} is set and elapsed
+   * @throws IOException          on HTTP transport errors
+   * @throws InterruptedException if the polling thread is interrupted
+   */
+  public Map<String, Object> waitFor(String intentId, ObserveOptions options)
+      throws IOException, InterruptedException {
+    List<Map<String, Object>> events = observe(intentId, options);
+    return events.get(events.size() - 1);
+  }
+
+  private static int maxSeenSeq(int currentMax, Map<String, Object> event) {
+    Object seqObj = event.get("seq");
+    if (seqObj instanceof Number) {
+      int seq = ((Number) seqObj).intValue();
+      return Math.max(currentMax, seq);
+    }
+    return currentMax;
+  }
+
+  private static boolean isTerminalIntentEvent(Map<String, Object> event) {
+    Object status = event.get("status");
+    if (status instanceof String && TERMINAL_STATUSES.contains(status)) {
+      return true;
+    }
+    Object eventType = event.get("event_type");
+    return eventType instanceof String && TERMINAL_EVENT_TYPES.contains(eventType);
   }
 
   private Map<String, Object> requestJson(
