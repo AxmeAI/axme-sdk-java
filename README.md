@@ -179,7 +179,56 @@ while (page.get("cursor") != null) {
 
 ---
 
-## Approvals
+## Human-in-the-Loop (8 Task Types)
+
+AXME supports 8 human task types. Each pauses the workflow and notifies a human via email with a link to a web task page.
+
+| Task type | Use case | Default outcomes |
+|-----------|----------|-----------------|
+| `approval` | Approve or reject a request | approved, rejected |
+| `confirmation` | Confirm a real-world action completed | confirmed, denied |
+| `review` | Review content with multiple outcomes | approved, changes_requested, rejected |
+| `assignment` | Assign work to a person or team | assigned, declined |
+| `form` | Collect structured data via form fields | submitted |
+| `clarification` | Request clarification (comment required) | provided, declined |
+| `manual_action` | Physical task completion (evidence required) | completed, failed |
+| `override` | Override a policy gate (comment required) | override_approved, rejected |
+
+```java
+// Create an intent with a human task step
+var result = client.createIntent(CreateIntentParams.builder()
+    .intentType("intent.budget.approval.v1")
+    .toAgent("agent://agent_core")
+    .payload(Map.of("amount", 32000, "department", "engineering"))
+    .humanTask(HumanTask.builder()
+        .title("Approve Q3 budget")
+        .description("Review and approve the Q3 infrastructure budget.")
+        .taskType("approval")
+        .notifyEmail("approver@example.com")
+        .allowedOutcomes(List.of("approved", "rejected"))
+        .build())
+    .build());
+```
+
+Task types with forms use `form_schema` to define required fields:
+
+```java
+HumanTask.builder()
+    .title("Assign incident commander")
+    .taskType("assignment")
+    .notifyEmail("oncall@example.com")
+    .formSchema(Map.of(
+        "type", "object",
+        "required", List.of("assignee"),
+        "properties", Map.of(
+            "assignee", Map.of("type", "string", "title", "Commander name"),
+            "priority", Map.of("type", "string", "enum", List.of("P1", "P2", "P3"))
+        )
+    ))
+    .build()
+```
+
+### Programmatic approvals (inbox API)
 
 ```java
 Map<String, Object> inbox = client.listInbox("agent://manager", RequestOptions.none());
