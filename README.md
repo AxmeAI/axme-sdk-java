@@ -327,6 +327,40 @@ Map<String, Object> profile = client.getUserProfile(
 
 ---
 
+## MCP (Model Context Protocol)
+
+The Java SDK includes a built-in MCP endpoint client for gateway-hosted MCP sessions.
+
+```java
+// Initialize an MCP session
+Map<String, Object> init = client.mcpInitialize(RequestOptions.defaults());
+System.out.println(init.get("serverInfo"));
+
+// List available tools
+Map<String, Object> tools = client.mcpListTools(RequestOptions.defaults());
+List<?> toolList = (List<?>) tools.get("tools");
+for (Object tool : toolList) {
+    Map<?, ?> t = (Map<?, ?>) tool;
+    System.out.println(t.get("name"));
+}
+
+// Call a tool
+Map<String, Object> result = client.mcpCallTool(
+    "create_intent",
+    Map.of(
+        "intent_type", "order.fulfillment.v1",
+        "payload", Map.of("order_id", "ord_123"),
+        "owner_agent", "agent://fulfillment-service"
+    ),
+    RequestOptions.defaults()
+);
+System.out.println(result);
+```
+
+By default the SDK posts to `/mcp`. Override with `mcpEndpointPath` in client options.
+
+---
+
 ## Repository Structure
 
 ```
