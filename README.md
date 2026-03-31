@@ -80,6 +80,19 @@ Map<String, Object> events = client.listIntentEvents(intentId, null, RequestOpti
 
 ---
 
+## Agent Mesh - Monitor and Govern
+
+Agent Mesh gives every agent real-time health monitoring, policy enforcement, and a kill switch - all from a single dashboard.
+
+```java
+client.mesh().startHeartbeat();
+client.mesh().reportMetric(Metric.builder().success(true).latencyMs(230).costUsd(0.02).build());
+```
+
+Set action policies (allowlist/denylist intent types) and cost policies (intents/day, $/day limits) per agent via dashboard or API. Mesh module coming soon to this SDK - [Python SDK](https://github.com/AxmeAI/axme-sdk-python) available now. [Full overview](https://github.com/AxmeAI/axme#agent-mesh---see-and-control-your-agents).
+
+---
+
 ## Examples
 
 See [`examples/BasicSubmit.java`](examples/BasicSubmit.java). More: [axme-examples](https://github.com/AxmeAI/axme-examples)
