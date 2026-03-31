@@ -22,6 +22,7 @@ public final class AxmeClient {
   private final String actorToken;
   private final HttpClient httpClient;
   private final ObjectMapper objectMapper = new ObjectMapper();
+  private volatile MeshClient mesh;
 
   public AxmeClient(AxmeClientConfig config) {
     this(config, HttpClient.newHttpClient());
@@ -32,6 +33,25 @@ public final class AxmeClient {
     this.apiKey = config.getApiKey();
     this.actorToken = config.getActorToken();
     this.httpClient = httpClient;
+  }
+
+  /**
+   * Returns the Agent Mesh sub-client (lazy-initialized, thread-safe).
+   *
+   * @return the shared {@link MeshClient} instance
+   */
+  public MeshClient getMesh() {
+    MeshClient result = mesh;
+    if (result == null) {
+      synchronized (this) {
+        result = mesh;
+        if (result == null) {
+          result = new MeshClient(this);
+          mesh = result;
+        }
+      }
+    }
+    return result;
   }
 
   public Map<String, Object> registerNick(Map<String, Object> payload, RequestOptions options)
@@ -830,7 +850,7 @@ public final class AxmeClient {
     return eventType instanceof String && TERMINAL_EVENT_TYPES.contains(eventType);
   }
 
-  private Map<String, Object> requestJson(
+  Map<String, Object> requestJson(
       String method,
       String path,
       Map<String, String> query,
