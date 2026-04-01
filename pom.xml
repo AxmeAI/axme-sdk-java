@@ -6,7 +6,7 @@
 
   <groupId>ai.axme</groupId>
   <artifactId>axme</artifactId>
-  <version>0.1.2</version>
+  <version>0.2.0</version>
   <name>axme</name>
   <description>Official Java SDK for Axme APIs and workflows.</description>
   <url>https://github.com/AxmeAI/axme-sdk-java</url>
