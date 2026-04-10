@@ -17,6 +17,13 @@ import java.util.Set;
 import java.util.UUID;
 
 public final class AxmeClient {
+
+  /**
+   * Published axme-sdk-java version. Sent in X-Axme-Client header so AXME
+   * platform analytics can identify SDK usage. Bump on every release.
+   */
+  public static final String SDK_VERSION = "0.2.0";
+
   private final String baseUrl;
   private final String apiKey;
   private final String actorToken;
@@ -864,6 +871,7 @@ public final class AxmeClient {
             .header("Accept", "application/json");
 
     builder.header("x-api-key", apiKey);
+    builder.header("X-Axme-Client", "axme-sdk-java/" + SDK_VERSION);
     String resolvedAuthorization = options.getAuthorization();
     if (isBlank(resolvedAuthorization) && !isBlank(actorToken)) {
       resolvedAuthorization = "Bearer " + actorToken;
