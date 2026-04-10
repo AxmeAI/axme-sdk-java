@@ -46,12 +46,21 @@ class AxmeClientTest {
     assertEquals("POST", request.getMethod());
     assertEquals("/v1/users/register-nick", request.getPath());
     assertEquals("token", request.getHeader("x-api-key"));
+    assertEquals("axme-sdk-java/" + AxmeClient.SDK_VERSION, request.getHeader("X-Axme-Client"));
     assertEquals("register-1", request.getHeader("Idempotency-Key"));
 
     Map<String, Object> body =
         objectMapper.readValue(request.getBody().readUtf8(), new TypeReference<Map<String, Object>>() {});
     assertEquals("@partner.user", body.get("nick"));
     assertTrue((Boolean) response.get("ok"));
+  }
+
+  @Test
+  void clientSendsXAxmeClientHeader() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true,\"available\":true}"));
+    client.checkNick("@partner.user", RequestOptions.none());
+    RecordedRequest request = server.takeRequest();
+    assertEquals("axme-sdk-java/" + AxmeClient.SDK_VERSION, request.getHeader("X-Axme-Client"));
   }
 
   @Test
